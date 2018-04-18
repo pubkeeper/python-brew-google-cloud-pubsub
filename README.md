@@ -60,26 +60,30 @@ There is currently a limitation within the Pubkeeper client that makes it diffic
 Example:
 Instead of this setup:
 ```
-+------------+
-|  Brewer 1  |
-| demo.topic +----------+
-+------------+          |      +------------+
-                        +------>   Patron   |
-+------------+          |      | demo.topic |
-|  Brewer 2  |          |      +------------+
-| demo.topic +----------+
-+------------+
++----------------+
+|    Brewer 1    |
+|   demo.topic   +-----+
+|                |     |    +-----------------+
++----------------+     |    |      Patron     |
+                       +---->    demo.topic   |
++----------------+     |    |                 |
+|    Brewer 2    |     |    +-----------------+
+|   demo.topic   +-----+
+|                |
++----------------+
 ```
 
 Use sub topics like so:
 ```
-+-------------+
-|  Brewer 1   |
-|demo.topic.b1+-----+  +----------------+
-+-------------+     +-->     Patron     |
-                    |  |  demo.topic.** |
-+-------------+     |  +----------------+
-|  Brewer 2   +-----+
-|demo.topic.b2|
-+-------------+
++----------------+
+|   Brewer 1     |
+| demo.topic.b1  +-----+
+|                |     |    +-----------------+
++----------------+     |    |     Patron      |
+                       +---->  demo.topic.**  |
++----------------+     |    |                 |
+|   Brewer 2     |     |    +-----------------+
+| demo.topic.b2  +-----+
+|                |
++----------------+
 ```
