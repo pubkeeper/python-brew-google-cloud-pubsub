@@ -1,7 +1,7 @@
 from collections import defaultdict
 from copy import copy
-from os import getenv
-from google.api_core.exceptions import AlreadyExists
+from os import getenv, environ
+from google.api_core.exceptions import AlreadyExists, InvalidArgument
 from google.cloud import pubsub_v1
 from pubkeeper.brew.base import Brew
 from . import BrewSettings
@@ -29,10 +29,34 @@ class GoogleCloudPubSubBrew(Brew):
 
     def configure(self, context):
         self._logger.info("Configuring")
-        self._gcp_project = context.get('gcp_project')
-        GCP_ENV_VAR = 'GOOGLE_APPLICATION_CREDENTIALS'
+        self._gcp_project = context.get('project_id')
+
+        # for authentication, a typical setting would be:
+        # export GOOGLE_APPLICATION_CREDENTIALS="[path_to]/[file_name].json"
+        # which points to a JSON file that contains the service account key,
+        # this file is obtained when creating a service account in google cloud
+        # and choosing key type as JSON.
         service_account_file = context.get('service_account_file')
-        if not service_account_file and not getenv(GCP_ENV_VAR):
+        GCP_ENV_VAR = 'GOOGLE_APPLICATION_CREDENTIALS'
+        env_var_value = getenv(GCP_ENV_VAR)
+        if service_account_file:
+            # env var not defined and setting is
+            if not env_var_value:
+                environ[GCP_ENV_VAR] = service_account_file
+                self._logger.info(
+                    "Service account specified but {} env var is not, setting"
+                    " env var to {}".format(GCP_ENV_VAR, service_account_file))
+            elif service_account_file != env_var_value:
+                # warn that values differ
+                self._logger.warning(
+                    "Service account set to {} but {} env var is set to {}".
+                    format(service_account_file, GCP_ENV_VAR, env_var_value))
+        elif env_var_value:
+            # only env var defined
+            self._logger.info(
+                    "No service account specified but {} env var is set to {}".
+                    format(GCP_ENV_VAR, env_var_value))
+        else:
             self._logger.warning(
                 "No service account specified and {} env var is not set. "
                 "You may not be able to authenticate to GCP".format(
@@ -49,6 +73,12 @@ class GoogleCloudPubSubBrew(Brew):
             # Ignore errors if the topic already exists
             self._logger.debug(
                 "GCP Topic {} already exists".format(brewer.topic))
+        except InvalidArgument:
+            self._logger.exception(
+                "Creating topic, invalid argument provided, please verify that "
+                "your 'project_id' configuration setting is valid and that "
+                "topic complies with google naming conventions")
+            raise
 
     def create_patron(self, patron):
         if self._subscriber is None:
